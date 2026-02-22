@@ -2,69 +2,73 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# -----------------------------
-# Page setup
-# -----------------------------
+# =============================
+# CONFIG
+# =============================
 st.set_page_config(
     page_title="NordTech Biznesa Operāciju Panelis",
-    page_icon="🛡️",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# -----------------------------
-# Premium widescreen styling (modern, not a copy)
-# -----------------------------
+# =============================
+# PREMIUM STYLING (widescreen)
+# =============================
 st.markdown(
     """
     <style>
       .block-container {
-        max-width: 1400px;
-        padding-top: 1.8rem;
+        max-width: 1480px;
+        padding-top: 1.6rem;
         padding-bottom: 2.0rem;
       }
       [data-testid="stSidebar"] .block-container {
-        padding-top: 1.2rem;
+        padding-top: 1.1rem;
       }
-      header[data-testid="stHeader"] {
-        height: 0px !important;
-      }
+      header[data-testid="stHeader"] { height: 0px !important; }
 
       .nl-title {
-        font-size: 3.0rem;
-        font-weight: 850;
-        letter-spacing: -0.03em;
+        font-size: 3.05rem;
+        font-weight: 900;
+        letter-spacing: -0.035em;
         line-height: 1.05;
-        margin: 0 0 0.35rem 0;
+        margin: 0 0 0.30rem 0;
       }
       .nl-subtitle {
-        opacity: 0.85;
+        opacity: 0.88;
         font-size: 1.05rem;
-        margin: 0 0 1.2rem 0;
+        margin: 0 0 0.35rem 0;
+      }
+      .nl-verified {
+        color: #2ecc71;
+        font-weight: 700;
+        font-size: 0.92rem;
+        margin: 0 0 1.1rem 0;
       }
 
       .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(5, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
         gap: 14px;
-        margin-top: 0.4rem;
-        margin-bottom: 0.6rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0.65rem;
       }
       .kpi-card {
         border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.03);
         border-radius: 16px;
         padding: 14px 14px 12px 14px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+        box-shadow: 0 10px 26px rgba(0,0,0,0.18);
       }
       .kpi-label {
-        font-size: 0.85rem;
-        opacity: 0.75;
+        font-size: 0.83rem;
+        opacity: 0.74;
         margin-bottom: 6px;
       }
       .kpi-value {
-        font-size: 1.55rem;
-        font-weight: 850;
+        font-size: 1.52rem;
+        font-weight: 900;
         letter-spacing: -0.02em;
       }
       .kpi-note {
@@ -72,12 +76,26 @@ st.markdown(
         opacity: 0.62;
         margin-top: 6px;
       }
+      .pill {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.05);
+      }
 
       .section-h {
-        font-size: 1.35rem;
-        font-weight: 780;
+        font-size: 1.32rem;
+        font-weight: 820;
         letter-spacing: -0.01em;
-        margin: 0.2rem 0 0.4rem 0;
+        margin: 0.2rem 0 0.45rem 0;
+      }
+      .muted {
+        opacity: 0.75;
+        font-size: 0.92rem;
       }
 
       div[data-testid="stTabs"] { margin-top: 0.75rem; }
@@ -89,7 +107,10 @@ st.markdown(
         background: rgba(255,255,255,0.02);
       }
 
-      @media (max-width: 1200px) {
+      @media (max-width: 1350px) {
+        .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      }
+      @media (max-width: 850px) {
         .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
     </style>
@@ -97,50 +118,60 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="nl-title">🛡️ NordTech Biznesa Operāciju Panelis</div>', unsafe_allow_html=True)
+# =============================
+# HEADER
+# =============================
+st.markdown('<div class="nl-title">📊 NordTech Biznesa Operāciju Panelis</div>', unsafe_allow_html=True)
 st.markdown(
     '<div class="nl-subtitle">Ieņēmumi, atgriezumi un atgriešanas risks — filtrējams panelis ar trendiem un TOP problēmām.</div>',
     unsafe_allow_html=True
 )
+st.markdown('<div class="nl-verified">✔ Publicēts tikai ar kursa mācību datiem (bez paroļu / API atslēgām)</div>', unsafe_allow_html=True)
 
-# -----------------------------
-# Load data
-# -----------------------------
+# =============================
+# LOAD DATA
+# =============================
 @st.cache_data(show_spinner=False)
 def load_data(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
 
-    # Parse + clean
-    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+    # required columns
+    required = [
+        "Transaction_ID", "Date", "Product_Category", "Product_Name",
+        "Revenue_EUR", "Refund_Amount", "Has_Return"
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"CSV trūkst kolonnas: {missing}")
 
+    df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     df["Revenue_EUR"] = pd.to_numeric(df["Revenue_EUR"], errors="coerce").fillna(0)
     df["Refund_Amount"] = pd.to_numeric(df["Refund_Amount"], errors="coerce").fillna(0)
-
-    # Has_Return: ensure 0/1 int
     df["Has_Return"] = pd.to_numeric(df["Has_Return"], errors="coerce").fillna(0).astype(int)
 
-    # Safe string cols
-    for c in ["Product_Category", "Product_Name"]:
-        if c in df.columns:
-            df[c] = df[c].astype(str)
+    df["Product_Category"] = df["Product_Category"].astype(str)
+    df["Product_Name"] = df["Product_Name"].astype(str)
 
     return df
 
 
-DATA_PATH = "enriched_data.csv"  # file is in repo root
+DATA_PATH = "enriched_data.csv"
 try:
     df0 = load_data(DATA_PATH)
 except FileNotFoundError:
-    st.error(f"❌ Nevar atrast failu: `{DATA_PATH}`. Pārbaudi, vai tas ir GitHub repo saknē.")
+    st.error(f"❌ Nevar atrast failu `{DATA_PATH}` repo saknē.")
+    st.stop()
+except ValueError as e:
+    st.error(f"❌ Datu struktūras kļūda: {e}")
     st.stop()
 
 if df0.empty:
-    st.warning("Datu fails ir ielādēts, bet tas ir tukšs.")
+    st.warning("Datu fails ielādēts, bet tas ir tukšs.")
     st.stop()
 
-# -----------------------------
-# Sidebar filters
-# -----------------------------
+# =============================
+# SIDEBAR CONTROLS
+# =============================
 st.sidebar.header("Iestatījumi")
 
 cats = sorted(df0["Product_Category"].dropna().unique().tolist())
@@ -150,11 +181,16 @@ min_d = df0["Date"].min()
 max_d = df0["Date"].max()
 
 if pd.isna(min_d) or pd.isna(max_d):
-    st.sidebar.warning("Datumu kolonna nav korekti nolasīta. Pārbaudi `Date` formātu CSV.")
+    st.sidebar.warning("Datumu kolonna nav korekti nolasīta (`Date`).")
     date_range = None
 else:
     date_range = st.sidebar.date_input("Periods (no – līdz):", value=(min_d.date(), max_d.date()))
 
+st.sidebar.divider()
+risk_threshold = st.sidebar.slider("Riska slieksnis brīdinājumam (%)", min_value=1, max_value=30, value=8)
+show_data = st.sidebar.checkbox("Rādīt datu tabulu (Dati tabā)", value=False)
+
+# Apply filters
 df = df0.copy()
 df = df[df["Product_Category"].isin(selected_cats)]
 
@@ -162,20 +198,37 @@ if date_range:
     start_date, end_date = date_range
     df = df[(df["Date"] >= pd.to_datetime(start_date)) & (df["Date"] <= pd.to_datetime(end_date))]
 
-st.sidebar.divider()
-show_data = st.sidebar.checkbox("Rādīt datu tabulu", value=False)
-
-# -----------------------------
-# KPIs
-# -----------------------------
+# =============================
+# KPI COMPUTE
+# =============================
 total_revenue = float(df["Revenue_EUR"].sum())
 total_refunds = float(df["Refund_Amount"].sum())
 net_revenue = total_revenue - total_refunds
 orders = int(df["Transaction_ID"].nunique())
 return_rate = float(df["Has_Return"].mean() * 100) if len(df) else 0.0
+refund_rate = float((total_refunds / total_revenue) * 100) if total_revenue > 0 else 0.0
 
 def eur(x: float) -> str:
     return f"{x:,.2f}".replace(",", " ")
+
+def risk_level(rr: float) -> str:
+    if rr >= 12:
+        return "HIGH"
+    if rr >= 7:
+        return "MEDIUM"
+    return "LOW"
+
+lvl = risk_level(return_rate)
+
+pill_html = {
+    "LOW": '<span class="pill" style="color:#2ecc71;">LOW RISK</span>',
+    "MEDIUM": '<span class="pill" style="color:#f1c40f;">MEDIUM RISK</span>',
+    "HIGH": '<span class="pill" style="color:#e74c3c;">HIGH RISK</span>',
+}[lvl]
+
+# Alert
+if return_rate >= risk_threshold:
+    st.warning(f"⚠️ Atgriešanas risks **{return_rate:.1f}%** pārsniedz slieksni **{risk_threshold}%** šajā filtrā.", icon="⚠️")
 
 st.markdown(
     f"""
@@ -201,7 +254,13 @@ st.markdown(
       <div class="kpi-card">
         <div class="kpi-label">Atgriešanas %</div>
         <div class="kpi-value">{return_rate:.1f}%</div>
-        <div class="kpi-note">Has_Return vidējais</div>
+        <div class="kpi-note">{pill_html}</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-label">Refund/Revenue %</div>
+        <div class="kpi-value">{refund_rate:.2f}%</div>
+        <div class="kpi-note">Refund kā daļa no ieņēmumiem</div>
       </div>
 
       <div class="kpi-card">
@@ -216,16 +275,17 @@ st.markdown(
 
 st.divider()
 
-# -----------------------------
-# Tabs
-# -----------------------------
-tab1, tab2, tab3 = st.tabs(["📈 Dinamika", "⚠️ Riski", "🧾 TOP problēmas"])
+# =============================
+# TABS
+# =============================
+tab1, tab2, tab3, tab4 = st.tabs(["📈 Dinamika", "⚠️ Riski", "🧾 TOP problēmas", "📦 Dati"])
 
-# -----------------------------
-# TAB 1: Trends
-# -----------------------------
+# =============================
+# TAB 1: Dynamics
+# =============================
 with tab1:
     st.markdown('<div class="section-h">Ieņēmumu un atgriezumu dinamika</div>', unsafe_allow_html=True)
+    st.markdown('<div class="muted">Divas metrikas vienā grafikā, lai ātri redzētu, kad pieaug refundi.</div>', unsafe_allow_html=True)
 
     tmp = df.dropna(subset=["Date"]).copy()
     tmp["day"] = tmp["Date"].dt.date
@@ -238,7 +298,6 @@ with tab1:
         var_name="Metric",
         value_name="Value",
     )
-
     fig = px.line(long, x="day", y="Value", color="Metric", markers=True)
     fig.update_layout(xaxis_title="Datums", yaxis_title="€", legend_title_text="")
     st.plotly_chart(fig, use_container_width=True)
@@ -264,42 +323,64 @@ with tab1:
             .sort_values("Refund_Amount", ascending=False)
         )
         if cat_ref["Refund_Amount"].sum() > 0:
-            fig3 = px.pie(cat_ref, names="Product_Category", values="Refund_Amount", hole=0.35)
+            fig3 = px.pie(cat_ref, names="Product_Category", values="Refund_Amount", hole=0.40)
             st.plotly_chart(fig3, use_container_width=True)
         else:
             st.info("Šajā filtrā nav atgriezumu (Refund_Amount = 0).")
 
-# -----------------------------
-# TAB 2: Risks
-# -----------------------------
+# =============================
+# TAB 2: Risk
+# =============================
 with tab2:
-    st.markdown('<div class="section-h">Atgriešanas risks pēc kategorijas</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-h">Atgriešanas risks laika gaitā</div>', unsafe_allow_html=True)
+
+    tmp = df.dropna(subset=["Date"]).copy()
+    tmp["day"] = tmp["Date"].dt.date
+
+    daily_risk = tmp.groupby("day", as_index=False)["Has_Return"].mean()
+    daily_risk["Return_Rate_%"] = daily_risk["Has_Return"] * 100
+
+    fig_risk = px.area(daily_risk, x="day", y="Return_Rate_%")
+    fig_risk.update_layout(xaxis_title="Datums", yaxis_title="Return rate (%)")
+    st.plotly_chart(fig_risk, use_container_width=True)
+
+    st.markdown('<div class="section-h">Atgriešanas risks pēc kategorijas (heat)</div>', unsafe_allow_html=True)
 
     risk = df.groupby("Product_Category", as_index=False)["Has_Return"].mean()
     risk["Return_Rate_%"] = risk["Has_Return"] * 100
     risk = risk.sort_values("Return_Rate_%", ascending=False)
 
-    fig4 = px.bar(risk, x="Product_Category", y="Return_Rate_%")
-    fig4.update_layout(xaxis_title="Kategorija", yaxis_title="Return rate (%)")
-    st.plotly_chart(fig4, use_container_width=True)
+    fig_bar = px.bar(
+        risk,
+        x="Product_Category",
+        y="Return_Rate_%",
+        color="Return_Rate_%",
+        color_continuous_scale="Reds",
+    )
+    fig_bar.update_layout(
+        xaxis_title="Kategorija",
+        yaxis_title="Return rate (%)",
+        coloraxis_showscale=False,
+    )
+    st.plotly_chart(fig_bar, use_container_width=True)
 
     st.markdown('<div class="section-h">Return vs No Return (pēc darījumu skaita)</div>', unsafe_allow_html=True)
     ret_counts = df["Has_Return"].value_counts().rename_axis("Has_Return").reset_index(name="count")
     ret_counts["Label"] = ret_counts["Has_Return"].map({0: "Nav atgriezts", 1: "Atgriezts"})
-    fig5 = px.pie(ret_counts, names="Label", values="count", hole=0.35)
-    st.plotly_chart(fig5, use_container_width=True)
+    fig_pie = px.pie(ret_counts, names="Label", values="count", hole=0.40)
+    st.plotly_chart(fig_pie, use_container_width=True)
 
-# -----------------------------
-# TAB 3: Top problematic
-# -----------------------------
+# =============================
+# TAB 3: TOP issues
+# =============================
 with tab3:
     st.markdown('<div class="section-h">Top problemātiskie darījumi (pēc lielākā atgriezuma €)</div>', unsafe_allow_html=True)
 
     top_refunds = (
         df[df["Refund_Amount"] > 0]
         .sort_values("Refund_Amount", ascending=False)
-        .loc[:, ["Transaction_ID", "Date", "Product_Category", "Product_Name", "Refund_Amount", "Revenue_EUR"]]
-        .head(15)
+        .loc[:, ["Transaction_ID", "Date", "Product_Category", "Product_Name", "Revenue_EUR", "Refund_Amount", "Has_Return"]]
+        .head(20)
     )
 
     if top_refunds.empty:
@@ -333,13 +414,17 @@ with tab3:
         fig7.update_layout(xaxis_title="Produkts", yaxis_title="€")
         st.plotly_chart(fig7, use_container_width=True)
 
-# -----------------------------
-# Optional: data preview + download
-# -----------------------------
-if show_data:
-    st.divider()
-    st.markdown('<div class="section-h">Datu priekšskatījums</div>', unsafe_allow_html=True)
-    st.dataframe(df.head(250), use_container_width=True)
+# =============================
+# TAB 4: Data
+# =============================
+with tab4:
+    st.markdown('<div class="section-h">Dati (filtrēti)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="muted">Šeit vari pārbaudīt, ka filtri strādā korekti un lejupielādēt CSV.</div>', unsafe_allow_html=True)
+
+    if show_data:
+        st.dataframe(df.head(300), use_container_width=True)
+    else:
+        st.info("Ieslēdz sidebarā “Rādīt datu tabulu (Dati tabā)”, ja gribi redzēt preview.")
 
     csv_bytes = df.to_csv(index=False).encode("utf-8")
     st.download_button(
