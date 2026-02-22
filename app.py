@@ -6,6 +6,107 @@ import plotly.express as px
 # Page setup
 # -----------------------------
 st.set_page_config(
+    # --- Premium widescreen styling (ne kopija, bet moderns) ---
+st.markdown(
+    """
+    <style>
+      /* Make main content wider */
+      .block-container {
+        max-width: 1400px;
+        padding-top: 2.0rem;
+        padding-bottom: 2.0rem;
+      }
+
+      /* Sidebar spacing */
+      [data-testid="stSidebar"] .block-container {
+        padding-top: 1.25rem;
+      }
+
+      /* Softer default typography */
+      html, body, [class*="css"]  {
+        font-kerning: normal;
+      }
+
+      /* Remove extra top padding under header */
+      header[data-testid="stHeader"] { 
+        height: 0px !important;
+      }
+
+      /* Title + subtitle look */
+      .nl-title {
+        font-size: 3.0rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        margin: 0 0 0.4rem 0;
+      }
+      .nl-subtitle {
+        opacity: 0.85;
+        font-size: 1.05rem;
+        margin: 0 0 1.25rem 0;
+      }
+
+      /* KPI cards */
+      .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+      }
+      .kpi-card {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.03);
+        border-radius: 16px;
+        padding: 14px 14px 12px 14px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+      }
+      .kpi-label {
+        font-size: 0.85rem;
+        opacity: 0.75;
+        margin-bottom: 6px;
+      }
+      .kpi-value {
+        font-size: 1.55rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .kpi-note {
+        font-size: 0.78rem;
+        opacity: 0.65;
+        margin-top: 6px;
+      }
+
+      /* Section headings */
+      .section-h {
+        font-size: 1.35rem;
+        font-weight: 750;
+        letter-spacing: -0.01em;
+        margin-top: 0.25rem;
+        margin-bottom: 0.25rem;
+      }
+
+      /* Tabs spacing */
+      div[data-testid="stTabs"] {
+        margin-top: 0.75rem;
+      }
+
+      /* Make charts feel cleaner */
+      [data-testid="stPlotlyChart"] > div {
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.02);
+      }
+
+      /* Responsive KPI grid */
+      @media (max-width: 1200px) {
+        .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
     page_title="NordTech Biznesa Operāciju Panelis",
     page_icon="🛡️",
     layout="wide",
