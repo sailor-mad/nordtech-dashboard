@@ -30,7 +30,7 @@ def load_data(path: str) -> pd.DataFrame:
     return df
 
 
-DATA_PATH = "data/enriched_data.csv"  # ieteicamais variants
+DATA_PATH = "enriched_data.csv"  # ieteicamais variants
 # DATA_PATH = "enriched_data.csv"     # ja turi tajā pašā mapē
 
 try:
